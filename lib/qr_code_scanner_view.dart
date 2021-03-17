@@ -19,12 +19,9 @@ class QRCodeScannerView extends StatefulWidget {
 }
 
 class _QRCodeScannerViewState extends State<QRCodeScannerView> {
-// class _QRCodeScannerViewState extends State<QRCodeScannerView>
-//     with WidgetsBindingObserver {
-  // Barcode? result;
-  PermissionStatus? _permissionStatus;
-  QRViewController? qrController;
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? _qrController;
+  final GlobalKey _qrKey = GlobalKey(debugLabel: 'QR');
+  bool _isQRScanned = false;
 
   // ホットリロードを機能させるには、プラットフォームがAndroidの場合はカメラを一時停止するか、
   // プラットフォームがiOSの場合はカメラを再開する必要がある
@@ -32,136 +29,20 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
   void reassemble() {
     super.reassemble();
     if (Platform.isAndroid) {
-      qrController?.pauseCamera();
+      _qrController?.pauseCamera();
     }
-    qrController?.resumeCamera();
+    _qrController?.resumeCamera();
   }
 
   @override
   void dispose() {
-    qrController?.dispose();
+    _qrController?.dispose();
     super.dispose();
-  }
-
-  // @override
-  // Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-  //   if (state == AppLifecycleState.paused) {
-  //     print('paused');
-  //     qrController?.pauseCamera();
-  //     // _checkPermissionState();
-  //   } else if (state == AppLifecycleState.resumed) {
-  //     print('resumed');
-  //     await _checkPermissionState();
-  //     qrController?.resumeCamera();
-  //   }
-  // }
-
-  // Future<void> _requestPermission() async {
-  //   final status = await Permission.camera.request();
-  //   setState(() {
-  //     _permissionStatus = status;
-  //   });
-  // }
-
-  Future<void> _checkPermissionState() async {
-    // if (_permissionStatus == null) {
-    //   _requestPermission();
-    //   return;
-    // }
-    // switch (_permissionStatus!) {
-    // switch (await Permission.camera.status) {
-    //   case PermissionStatus.granted:
-    //     print('granted');
-    //     break;
-    //   case PermissionStatus.denied:
-    //     print('denied');
-    //     break;
-    //   case PermissionStatus.restricted:
-    //     print('restricted');
-    //     break;
-    //   case PermissionStatus.permanentlyDenied:
-    //     print('permanentlyDenied');
-    //     break;
-    //   case PermissionStatus.limited:
-    //     print('limited');
-    //     break;
-    // }
-    final status = await Permission.camera.status;
-    print(status);
-    if (!status.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          // duration: const Duration(days: 365),
-          duration: const Duration(seconds: 5),
-          content: const Text('QRコードを読み取る為にカメラを設定してください'),
-          action: SnackBarAction(
-            label: '設定',
-            onPressed: () async {
-              openAppSettings();
-            },
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> showRequestPermissionDialog(BuildContext context) async {
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('カメラを許可してください'),
-          content: const Text('QRコードを読み取る為にカメラを利用します'),
-          actions: <Widget>[
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('キャンセル'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                openAppSettings();
-              },
-              child: const Text('設定'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildPermissionState(BuildContext context) {
-    if (_permissionStatus != null && !_permissionStatus!.isGranted) {
-      return AlertDialog(
-        title: const Text('カメラを許可してください'),
-        content: const Text('QRコードを読み取る為にカメラを利用します'),
-        actions: <Widget>[
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('キャンセル'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              openAppSettings();
-            },
-            child: const Text('設定'),
-          ),
-        ],
-      );
-    } else {
-      return _buildQRView(context);
-    }
-  }
-
-  Future<void> _check() async {
-    final status = await Permission.camera.status;
-    setState(() {
-      _permissionStatus = status;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    _check();
+    // _checkPermissionState();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan the QR code'),
@@ -170,8 +51,8 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
         children: <Widget>[
           Expanded(
             flex: 4,
-            child: _buildPermissionState(context),
-            // child: _buildQRView(context),
+            // child: _buildPermissionState(context),
+            child: _buildQRView(context),
           ),
           Expanded(
             flex: 1,
@@ -189,11 +70,11 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
                         margin: const EdgeInsets.all(8),
                         child: ElevatedButton(
                           onPressed: () async {
-                            await qrController?.toggleFlash();
+                            await _qrController?.toggleFlash();
                             setState(() {});
                           },
                           child: FutureBuilder(
-                            future: qrController?.getFlashStatus(),
+                            future: _qrController?.getFlashStatus(),
                             builder: (context, snapshot) =>
                                 Text('Flash: ${snapshot.data}'),
                           ),
@@ -203,11 +84,11 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
                         margin: const EdgeInsets.all(8),
                         child: ElevatedButton(
                           onPressed: () async {
-                            await qrController?.flipCamera();
+                            await _qrController?.flipCamera();
                             setState(() {});
                           },
                           child: FutureBuilder(
-                            future: qrController?.getCameraInfo(),
+                            future: _qrController?.getCameraInfo(),
                             builder: (context, snapshot) => snapshot.data !=
                                     null
                                 ? Text(
@@ -226,7 +107,7 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
                         margin: const EdgeInsets.all(8),
                         child: ElevatedButton(
                           onPressed: () async {
-                            await qrController?.pauseCamera();
+                            await _qrController?.pauseCamera();
                           },
                           child: const Text(
                             'pause',
@@ -238,7 +119,7 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
                         margin: const EdgeInsets.all(8),
                         child: ElevatedButton(
                           onPressed: () async {
-                            await qrController?.resumeCamera();
+                            await _qrController?.resumeCamera();
                           },
                           child: const Text(
                             'resume',
@@ -258,13 +139,8 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
   }
 
   Widget _buildQRView(BuildContext context) {
-    // final scanArea = (MediaQuery.of(context).size.width < 400 ||
-    //         MediaQuery.of(context).size.height < 400)
-    //     ? 150.0
-    //     : 300.0;
-
     return QRView(
-      key: qrKey,
+      key: _qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
         borderColor: Colors.green,
@@ -278,7 +154,7 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
 
   void _onQRViewCreated(QRViewController qrController) {
     setState(() {
-      this.qrController = qrController;
+      _qrController = qrController;
     });
     // QRを読み込みをlistenする
     qrController.scannedDataStream.listen((scanData) {
@@ -291,21 +167,56 @@ class _QRCodeScannerViewState extends State<QRCodeScannerView> {
         );
       }
       // 次の画面へ遷移
-      transitionToNextScreen(describeEnum(scanData.format), scanData.code!);
+      _transitionToNextScreen(describeEnum(scanData.format), scanData.code!);
     });
   }
 
-  Future<void> transitionToNextScreen(String type, String data) async {
-    // カメラを一時停止
-    qrController?.pauseCamera();
-    // 次の画面へ遷移
-    await Navigator.pushNamed(
-      context,
-      Const.routeConfirm,
-      arguments: ConfirmViewArguments(type: type, data: data),
-    ).then(
-      // 遷移先画面から戻った場合カメラを再開
-      (value) => qrController?.resumeCamera(),
-    );
+  Future<void> _transitionToNextScreen(String type, String data) async {
+    if (!_isQRScanned) {
+      // カメラを一時停止
+      _qrController?.pauseCamera();
+      _isQRScanned = true;
+      // 次の画面へ遷移
+      await Navigator.pushNamed(
+        context,
+        Const.routeConfirm,
+        arguments: ConfirmViewArguments(type: type, data: data),
+      ).then(
+        // 遷移先画面から戻った場合カメラを再開
+        (value) {
+          _qrController?.resumeCamera();
+          _isQRScanned = false;
+        },
+      );
+    }
   }
+  // Future<void> _checkPermissionState() async {
+  //   if (!await Permission.camera.status.isGranted) {
+  //     _showRequestPermissionDialog(context);
+  //   }
+  // }
+  //
+  // Future<void> _showRequestPermissionDialog(BuildContext context) async {
+  //   await showDialog<void>(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: const Text('カメラを許可してください'),
+  //         content: const Text('QRコードを読み取る為にカメラを利用します'),
+  //         actions: <Widget>[
+  //           ElevatedButton(
+  //             onPressed: () => Navigator.pop(context),
+  //             child: const Text('キャンセル'),
+  //           ),
+  //           ElevatedButton(
+  //             onPressed: () async {
+  //               openAppSettings();
+  //             },
+  //             child: const Text('設定'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
 }
